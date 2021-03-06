@@ -16,6 +16,9 @@ from nltk.tokenize import sent_tokenize
 PAD_WORD = '[PAD]'
 data_path = './data'
 
+import nltk
+nltk.download('punkt')
+
 # data loading functions:
 def parse(path):
     g = gzip.open(path, 'rb')
@@ -49,6 +52,7 @@ categories = ['Tools_and_Home_Improvement','Patio_Lawn_and_Garden','Automotive',
 all_training = {}
 
 for category in categories:
+    print("Category: ", category)
     reviews=os.path.join(data_path,'reviews_'+category+'.json.gz')
     qa=os.path.join(data_path,'QA_'+category+'.json.gz')
     da = getDF(qa)
@@ -60,26 +64,30 @@ for category in categories:
     qa_pairs = [item for sublist in qa_pairs for item in sublist]
     qa_pairs =pd.DataFrame(qa_pairs,columns=['asin','QA'])
     asins=da.asin.unique()
+    print("QA pairs generated")
 
     # Only keep reviews whose product has QA pairs
     dr=dr[dr.asin.isin(asins)]
     dr=dr.reset_index(drop=True)
     dr = dr[['asin','reviewText']]
-    
+    print("Reviews filtered according to QA")
+
     # split review into sentences for each product
     review_agg=dr.groupby('asin')['reviewText'].apply(lambda x: "%s" % ' '.join(x)).reset_index()
     review_agg['reviewText']=review_agg['reviewText'].apply(tokenizer_sentence)
     
     qa_withReivews = pd.merge(qa_pairs, review_agg, how='inner', on=['asin'])
-    
-    # suffle dataset with a random seed (First 80% for traininig, then 10% for dev and 10% for test)
+    print("QA with reviews generated")
+
+    # shuffle dataset with a random seed (First 80% for traininig, then 10% for dev and 10% for test)
     qa_withReivews = shuffle(qa_withReivews,random_state=30)
     qa_withReivews = qa_withReivews.reset_index(drop=True)
     if(qa_withReivews.isnull().values.any()):
         qa_withReivews = qa_withReivews.replace(np.nan, PAD_WORD, regex=True)
     qa_withReivews.to_csv(os.path.join(data_path, category+'.txt'), index=None, sep='\t', mode='w')
     all_training[category] = qa_withReivews[:int(len(qa_withReivews)*0.8)]
-    
+    print("Training data for category complete")
+
 ALL = []
 for key in all_training.keys():
     temp = all_training[key]
@@ -87,3 +95,4 @@ for key in all_training.keys():
     ALL.append(temp)
 ALL = pd.concat(ALL, ignore_index=True)
 ALL.to_csv(os.path.join(data_path, 'ALL.txt'), index=None, sep='\t', mode='w',encoding='utf-8')
+print("Done")

@@ -173,6 +173,7 @@ ALL['question'] = ALL['QA'].apply(lambda x: x['questionText'])
 ALL['answer'] = ALL['QA'].apply(lambda x: x['answers'][0]['answerText'] if len(x['answers'])>0 else PAD_WORD)
 list_of_answers = list(ALL['answer'])
 list_of_answers=shuffle(list_of_answers)
+print("ALL data read")
 
 qa = ALL[['question','answer']]
 nqa =  pd.DataFrame({'question': ALL['question'].tolist(),'answer':list_of_answers})
@@ -190,6 +191,7 @@ DATA_COLUMN_A = 'question'
 DATA_COLUMN_B = 'answer'
 LABEL_COLUMN = 'label'
 label_list = [0, 1]
+print("Data formatted")
 
 # Use the InputExample class from BERT's run_classifier code to create examples from the data
 train_InputExamples = train.apply(lambda x: run_classifier.InputExample(guid=None, # Globally unique ID for bookkeeping, unused in this example
@@ -205,7 +207,7 @@ test_InputExamples = test.apply(lambda x: run_classifier.InputExample(guid=None,
 # Convert our train and test features to InputFeatures that BERT understands.
 train_features = run_classifier.convert_examples_to_features(train_InputExamples, label_list, MAX_SEQ_LENGTH, tokenizer)
 test_features = run_classifier.convert_examples_to_features(test_InputExamples, label_list, MAX_SEQ_LENGTH, tokenizer)
-
+print("Train and test features created")
 
 # Compute # train and warmup steps from batch size
 num_train_steps = int(len(train_features) / BATCH_SIZE * NUM_TRAIN_EPOCHS)
@@ -216,13 +218,14 @@ run_config = tf.estimator.RunConfig(
                                     model_dir=OUTPUT_DIR,
                                     save_summary_steps=SAVE_SUMMARY_STEPS,
                                     save_checkpoints_steps=SAVE_CHECKPOINTS_STEPS)
+print("run config complete")
 
 model_fn = model_fn_builder(
                             num_labels=len(label_list),
                             learning_rate=LEARNING_RATE,
                             num_train_steps=num_train_steps,
                             num_warmup_steps=num_warmup_steps)
-
+print("Model built")
 estimator = tf.estimator.Estimator(
                                    model_fn=model_fn,
                                    config=run_config,
@@ -251,4 +254,4 @@ predictions = estimator.predict(test_input_fn)
 x=[prediction['labels'] for prediction in predictions]
 test['prediction']=x
 from sklearn.metrics import accuracy_score
-print('The accuracy of  cross-domian training FLTR is: '+str(accuracy_score(test.label,test.prediction)))
+print('The accuracy of  cross-domain training FLTR is: '+str(accuracy_score(test.label,test.prediction)))
